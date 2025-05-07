@@ -60,12 +60,11 @@ def branch_prompt [] {
 
 export def --env present [] {
     $env.PROMPT_COMMAND = {|| branch_prompt }
-    print $"  (ansi green_bold)Luca Ciucci(ansi reset) <(ansi blue)luca.ciucci99@gmail.com(ansi reset)> <https://lucaciucci.github.io/>"
-}
-
-export def --env present-bugseng [] {
-    $env.PROMPT_COMMAND = {|| branch_prompt }
-    print $"  (ansi green_bold)Luca Ciucci @ Bugseng(ansi reset) <(ansi blue)luca.ciucci@bugseng.com(ansi reset)> <https://bugseng.com/>"
+    mut m = $"  (ansi green_bold)Luca Ciucci(ansi reset) <(ansi blue)luca.ciucci99@gmail.com(ansi reset)> <https://lucaciucci.github.io/>"
+    if (open /etc/hostname | str contains luca-VivoBook-ASUSLaptop-X580GD-N580GD) {
+        $m = $"  (ansi green_bold)Luca Ciucci @ Bugseng(ansi reset) <(ansi blue)luca.ciucci@bugseng.com(ansi reset)> <https://bugseng.com/>"
+    }
+    print $m
 }
 
 # Create a symlink
