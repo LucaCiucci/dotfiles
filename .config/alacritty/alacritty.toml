@@ -1,0 +1,10 @@
+shell = "nu"
+
+[window]
+opacity = 0.95
+blur = true
+
+[keyboard]
+bindings = [
+  { key = "N", mods = "Control|Shift", action = "SpawnNewInstance" },
+]
