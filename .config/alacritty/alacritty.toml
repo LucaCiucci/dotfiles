@@ -8,3 +8,10 @@ blur = true
 bindings = [
   { key = "N", mods = "Control|Shift", action = "SpawnNewInstance" },
 ]
+
+[cursor]
+blink_interval = 500
+blink_timeout = 5
+[cursor.style]
+blinking = "On"
+shape = "Beam"
