@@ -1,3 +1,4 @@
+use std assert
 
 export def relative_to_home [] {
     let p = $in
@@ -21,7 +22,13 @@ def branch_prompt [] {
 
     let branch_response = git branch --show-current | complete
     if $branch_response.exit_code == 0 {
-        let branch = $branch_response.stdout | lines | get 0
+        let branch_response_lines = $branch_response.stdout | str trim | lines
+        let branch = if ($branch_response_lines | length) == 0 {
+            let hash = ^git rev-parse --short HEAD | str trim
+            $"#($hash)"
+        } else {
+            $branch_response_lines.0
+        }
         let repo_root = ^git rev-parse --show-toplevel | complete | get stdout | str trim | relative_to_home
         let repo_parent = $repo_root | path dirname
         let repo_name = ^basename $repo_root
@@ -130,3 +137,25 @@ export def explain [
 
     start $url
 }
+
+const dev_aliases = {
+    "uni": "~/workspace/uni/",
+    "nm4p": "~/workspace/uni/courses/nm4p/",
+    "e-birb": "~/workspace/e-birb/",
+    "e-light": "~/workspace/e-birb/repos/e-light"
+}
+
+def ws_aliases [] {
+    $dev_aliases | items { |k, v|
+        {
+            value: $k
+            description: $v
+        }
+    }
+}
+
+export def --env "ws" [ws: string@ws_aliases] {
+    assert ($ws in $dev_aliases) $"no workspace alias for ($ws)"
+    cd ($dev_aliases | get $ws)
+}
+
