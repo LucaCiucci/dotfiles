@@ -25,8 +25,8 @@ def branch_prompt [] {
         mut acc = $repo_root
         mut colored = []
         for part in $parts {
-            let next = ($acc | path join $part)
-            let is_ignored = (do --ignore-errors { ^git check-ignore $next | complete | get exit_code } | default 1) == 0
+            let next = ($acc | path join $part | path expand)
+            let is_ignored = (do --ignore-errors { ^git check-ignore $"($next)/" | complete | get exit_code } | default 1) == 0
             let color = if $is_ignored { ansi grey } else { $path_color }
             $colored = ($colored | append $"($colored_sep)($color)($part)(ansi reset)")
             $acc = $next
