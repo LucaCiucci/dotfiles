@@ -37,7 +37,7 @@ def branch_prompt [] {
     mut dir = $env.PWD | relative_to_home
 
     let branch_response = git branch --show-current | complete
-    if $branch_response.exit_code == 0 {
+    let prompt = if $branch_response.exit_code == 0 {
         let branch_response_lines = $branch_response.stdout | str trim | lines
         let branch = if ($branch_response_lines | length) == 0 {
             let hash = ^git rev-parse --short HEAD | str trim
@@ -80,6 +80,12 @@ def branch_prompt [] {
         $"($repo_parent | color_path)($colored_sep)($path_color)($repo_name_with_link)($branch_info)($colored_path)"
     } else {
         $dir | color_path
+    };
+
+    if ($prompt | ansi strip | str length) > 50 {
+        $"(ansi cyan)╭╴(ansi reset)($prompt)\n(ansi cyan)╰╴(ansi reset)"
+    } else {
+        $prompt
     }
 }
 
