@@ -18,6 +18,22 @@ def branch_prompt [] {
         $"($path_color)($in)" | str replace --all (char path_sep) $"($colored_sep)($path_color)"
     }
 
+    # Helper: color path, gray for gitignored
+    def color_path_gitignore [repo_root path_relative_to_repo path_color colored_sep] {
+        let sep = (char path_sep)
+        let parts = ($path_relative_to_repo | split row $sep | filter {|x| $x != "" })
+        mut acc = $repo_root
+        mut colored = []
+        for part in $parts {
+            let next = ($acc | path join $part)
+            let is_ignored = (do --ignore-errors { ^git check-ignore $next | complete | get exit_code } | default 1) == 0
+            let color = if $is_ignored { ansi grey } else { $path_color }
+            $colored = ($colored | append $"($colored_sep)($color)($part)(ansi reset)")
+            $acc = $next
+        }
+        $colored | str join ""
+    }
+
     mut dir = $env.PWD | relative_to_home
 
     let branch_response = git branch --show-current | complete
@@ -34,7 +50,7 @@ def branch_prompt [] {
         let repo_name = ^basename $repo_root
         let path_relative_to_repo = match ($dir | path relative-to $repo_root) {
             "" => "",
-            $relative => $"(char path_sep)($relative)(ansi reset)"
+            $relative => $relative
         }
 
         # add a link to the repo if we have one
@@ -48,17 +64,20 @@ def branch_prompt [] {
         let unpulled = (git log --remotes --not --branches --max-count=1 | lines | length) > 0
         let staged = (git diff --staged --quiet | complete | get exit_code) == 1
 
-        # remote tracking branchgit
         let unpushed_mark = if $unpushed { $"(ansi purple)↑(ansi reset)" } else { "" }
         let unpulled_mark = if $unpulled { $"(ansi red)↓(ansi reset)" } else { "" }
         let staged_mark = if $staged { $"(ansi yellow)●(ansi reset)" } else { "" }
         let color = if $no_changes { ansi grey } else { ansi xterm_gold3b }
 
-        # example: "(main↑↓●)"
         let branch_info = $"(ansi grey)\((ansi reset)($color)($branch)(ansi reset)($unpushed_mark)($unpulled_mark)($staged_mark)(ansi grey)\)(ansi reset)"
 
-        # build the prompt, example: "~/some/path/repo(main↑↓●)/src"
-        $"($repo_parent | color_path)($colored_sep)($path_color)($repo_name_with_link)($branch_info)($path_relative_to_repo | color_path)"
+        let colored_path = if $path_relative_to_repo == "" {
+            ""
+        } else {
+            color_path_gitignore $repo_root $path_relative_to_repo $path_color $colored_sep
+        }
+
+        $"($repo_parent | color_path)($colored_sep)($path_color)($repo_name_with_link)($branch_info)($colored_path)"
     } else {
         $dir | color_path
     }
