@@ -21,7 +21,7 @@ def branch_prompt [] {
     # Helper: color path, gray for gitignored
     def color_path_gitignore [repo_root path_relative_to_repo path_color colored_sep] {
         let sep = (char path_sep)
-        let parts = ($path_relative_to_repo | split row $sep | filter {|x| $x != "" })
+        let parts = ($path_relative_to_repo | split row $sep | where {|x| $x != "" })
         mut acc = $repo_root
         mut colored = []
         for part in $parts {
