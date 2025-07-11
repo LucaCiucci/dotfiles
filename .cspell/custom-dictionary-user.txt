@@ -18,8 +18,10 @@ cetz
 cgmath
 chaoticity
 chrono
+Cimmino
 cmarker
 coeff
+colbreak
 collatz
 confliggente
 constexpr
@@ -37,6 +39,7 @@ eframe
 egui
 eigen
 expline
+expval
 extrinsics
 forall
 fourcc
@@ -80,6 +83,7 @@ nrows
 Nushell
 oneshot
 pagebreak
+pathdiff
 phasor
 phasors
 powi
@@ -106,6 +110,7 @@ smallcaps
 SPIR-V
 stdext
 struct
+taskfile
 teardowns
 tempdir
 tempfile

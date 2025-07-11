@@ -17,3 +17,5 @@ git add .file
 stow .
 ```
 
+
+<https://anhari.dev/blog/saving-vscode-settings-in-your-dotfiles>
