@@ -1,4 +1,5 @@
 use user.nu
+use user cdk
 user present
 export use "completions.nu" *
 

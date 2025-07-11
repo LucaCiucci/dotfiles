@@ -185,3 +185,11 @@ export def --env "ws" [ws: string@ws_aliases] {
     cd ($dev_aliases | get $ws)
 }
 
+
+# Make and change dir
+#
+# Alias to `mkdir $dir; cd $dir`
+export def --env cdk [dir: path] {
+    mkdir $dir
+    cd $dir
+}
