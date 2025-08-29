@@ -18,6 +18,9 @@ export use nu_scripts/custom-completions/tar/tar-completions.nu *
 #export use nu_scripts/custom-completions/typst/typst-completions.nu *
 export use nu_scripts/custom-completions/vscode/vscode-completions.nu *
 
+# My own completions
+#export use my_completions/birb.nu *
+
 # Alias for `git pull --rebase`
 export extern "git up" []
 #{ ^git pull --rebase }

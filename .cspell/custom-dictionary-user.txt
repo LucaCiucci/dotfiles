@@ -1,4 +1,5 @@
 Abortable
+Addrs
 ahash
 autocorr
 autocorrelated
@@ -27,6 +28,8 @@ confliggente
 constexpr
 consts
 CUDA
+Datagram
+datagrams
 datetime
 decltype
 Deque
@@ -75,6 +78,7 @@ mjpeg
 MJPG
 mmap
 monome
+mpsc
 nalgebra
 nanos
 ncols
@@ -116,6 +120,7 @@ tempdir
 tempfile
 thiserror
 timeit
+turbopack
 typst
 ulps
 underbrace
