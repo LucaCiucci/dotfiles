@@ -10,6 +10,9 @@ export def relative_to_home [] {
 }
 
 def branch_prompt [] {
+    let user = whoami | str trim
+    let hostname = hostname | str trim
+
     let path_color = (if (is-admin) { ansi red_bold } else { ansi green_bold })
     let separator_color = (if (is-admin) { ansi light_red_bold } else { ansi light_green_bold })
     let colored_sep = $"($separator_color)(char path_sep)"
@@ -81,6 +84,9 @@ def branch_prompt [] {
     } else {
         $dir | color_path
     };
+
+    # ! TMP
+    let prompt = $"(ansi grey)($user)@($hostname)(ansi reset):($prompt)"
 
     if ($prompt | ansi strip | str length) > 50 {
         $"(ansi cyan)╭╴(ansi reset)($prompt)\n(ansi cyan)╰╴(ansi reset)"
