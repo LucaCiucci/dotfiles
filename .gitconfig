@@ -16,3 +16,4 @@
 	path = .gitconfig.local
 [alias]
 	up = pull --rebase
+	current-commit = "!f() { git rev-parse ${1:-} HEAD; }; f"
