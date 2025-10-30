@@ -17,3 +17,13 @@
 [alias]
 	up = pull --rebase
 	current-commit = "!f() { git rev-parse ${1:-} HEAD; }; f"
+	retry = "!f() { \
+	  cd \"$GIT_PREFIX\"; \
+	  for i in 1 2 3 4 5; do \
+	  	git \"$@\" && exit 0; \
+	  	echo \"git $* failed. Retrying in 5 seconds...\"; \
+	  	sleep 5; \
+	  done; \
+	  echo \"get $* failed after 5 attempts.\"; \
+	  exit 1; \
+	}; f"
