@@ -199,3 +199,92 @@ export def --env cdk [dir: path] {
     mkdir $dir
     cd $dir
 }
+
+export def friendly-path [
+    path?: path      # The path to display (defaults to current directory)
+    --force (-f)     # Allow non-existent paths (will check git from nearest existing parent)
+]: nothing -> string {
+    # Use provided path or current directory
+    let target_path = if ($path | is-empty) {
+        $env.PWD
+    } else {
+        $path | path expand
+    }
+
+    # Find the first existing directory (for git checks)
+    let existing_dir = if ($target_path | path exists) {
+        if ($target_path | path type) == "dir" {
+            $target_path
+        } else {
+            $target_path | path dirname
+        }
+    } else if $force {
+        # Recursively find the first existing parent directory
+        mut check_path = $target_path | path dirname
+        while not ($check_path | path exists) and ($check_path != "/" and $check_path != "~") {
+            $check_path = ($check_path | path dirname)
+        }
+        if ($check_path | path exists) {
+            $check_path
+        } else {
+            error make {msg: $"No existing parent directory found for: ($target_path)"}
+        }
+    } else {
+        error make {msg: $"Path does not exist: ($target_path)"}
+    }
+
+    # Convert to home-relative path
+    let dir = $target_path | relative_to_home
+
+    # Check if we're in a git repo by running git in the existing directory
+    let branch_response = (do --ignore-errors {
+        cd $existing_dir
+        ^git branch --show-current
+    } | complete)
+    
+    if $branch_response.exit_code == 0 {
+        # We're in a git repo
+        let branch_lines = $branch_response.stdout | str trim | lines
+        let branch = if ($branch_lines | length) == 0 {
+            # Detached HEAD - use short commit hash
+            let hash_response = (do --ignore-errors { 
+                cd $existing_dir
+                ^git rev-parse --short HEAD 
+            } | complete)
+            if $hash_response.exit_code == 0 {
+                $"#($hash_response.stdout | str trim)"
+            } else {
+                "unknown"
+            }
+        } else {
+            $branch_lines.0
+        }
+        
+        # Get repo root and build the path
+        let repo_root_response = (do --ignore-errors { 
+            cd $existing_dir
+            ^git rev-parse --show-toplevel 
+        } | complete)
+        
+        if $repo_root_response.exit_code != 0 {
+            # Shouldn't happen if we got a branch, but fallback to simple path
+            return $dir
+        }
+        
+        let repo_root_abs = $repo_root_response.stdout | str trim
+        let repo_root = $repo_root_abs | relative_to_home
+        let repo_parent = $repo_root | path dirname
+        let repo_name = $repo_root_abs | path basename
+        
+        let path_relative_to_repo = match ($target_path | path relative-to $repo_root_abs) {
+            "" => "",
+            $relative => $"(char path_sep)($relative)"
+        }
+        
+        # Build the friendly path: ~/parent/repo(branch)/subpath
+        $"($repo_parent)(char path_sep)($repo_name)\(($branch)\)($path_relative_to_repo)"
+    } else {
+        # Not in a git repo, just return the home-relative path
+        $dir
+    }
+}
