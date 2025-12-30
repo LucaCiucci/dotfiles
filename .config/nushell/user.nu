@@ -288,3 +288,34 @@ export def friendly-path [
         $dir
     }
 }
+
+const here = path self
+
+export def --wrapped "peak-mem" [...command: string]: nothing -> filesize {
+    bash ($here | path dirname | path join "measure.sh") ...$command
+    sleep 0.2sec
+    let max = (open /sys/fs/cgroup/measure/memory.peak | into int) * 1b
+    sudo rmdir /sys/fs/cgroup/measure
+    $max
+}
+
+export def progress [ ] {
+    use std repeat
+
+    let data = $in | collect
+    let n = $data | length
+    let n_str = $n | into string
+
+    # progress bar width
+    let w = 60
+
+    $data | enumerate | each {|it|
+        let n = ($it.index / $n * $w) | math ceil
+        let index_str = $it.index | into string
+        let index_str = (" " | repeat (($n_str | str length) - ($index_str | str length)) | str join) + $index_str
+        print --no-newline $"[('#' | repeat $n | str join)(' ' | repeat ($w - $n) | str join)] \(($index_str)/($n_str)\)\r"
+        $it.item
+    }
+    print ""
+}
+
