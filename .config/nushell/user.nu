@@ -2,7 +2,7 @@ use std assert
 
 export def relative_to_home [] {
     let p = $in
-    match (do --ignore-errors { $p | path relative-to $nu.home-path }) {
+    match (do --ignore-errors { $p | path relative-to $nu.home-dir }) {
         null => $p
         '' => '~'
         $relative_pwd => ([~ $relative_pwd] | path join)

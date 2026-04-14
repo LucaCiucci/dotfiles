@@ -8,3 +8,5 @@ $env.config.hooks.env_change.PWD = []
 $env.config.hooks.env_change.PWD = (
   $env.config.hooks.env_change.PWD | append (source nu_scripts/nu-hooks/nu-hooks/direnv/config.nu)
 )
+
+$env.PATH = $env.PATH | append ~/.cargo/bin
