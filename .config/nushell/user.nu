@@ -319,3 +319,70 @@ export def progress [ ] {
     print ""
 }
 
+# Reduce lesson video size
+#
+# This function uses ffmpeg to reduce the size of lesson videos by lowering
+# their resolution, frame rate, and audio quality. It processes the input video
+export def reduce-lesson-video [
+    video: path  # path to the video file
+    output?: path # optional output path
+    --subtitles: path # optional subtitles file
+] {
+    if not ($video | path exists) {
+        panic $"file ($video) does not exist"
+    }
+
+    let output = if $output == null {
+        #let ext = $video | split row "." | last
+        let no_ext = $video | split row "." | slice 0..=-2 | str join "."
+        $"($no_ext)-reduced.mkv"
+    } else {
+        $output
+    }
+
+    let args = [
+        -i $video
+    ]
+
+    let args = if $subtitles != null {
+        $args ++ [
+            -i $subtitles
+            -c:s srt # -c:s mov_text for mp4??
+            -map 0:v
+            -map 0:a
+            -map 1:s?
+        ]
+    } else {
+        $args
+    }
+
+    let args = $args ++ [
+        # maximum 4 hours, log videos are certainly garbage where I forgot to stop recording
+        -t "04:00:00"
+
+        # Use x265 codec, not super popular since it is GNU licensed, but it is the best I'm aware of
+        -vcodec libx265
+
+        # options to reduce video quality:
+        -crf 30          # lessons are mostly static content so we reduce quality a lots
+        -r 5             # limit to 5 FPS for the same reason
+        -vf scale=960:-2 # reduce resolution to 960px wide, keep aspect ratio (divisible by 2)
+
+        # options to reduce audio quality:
+        -acodec aac # use AAC codec
+        -b:a 64k    # reduce audio bitrate to 64k
+
+        # ChatGPT told me to add this to help with jumping around in the video
+        -movflags +faststart
+
+        # output file
+        $output
+
+        # logging options:
+        #-v warning
+        #-loglevel error
+        #-hide_banner
+    ]
+
+    ^ffmpeg ...$args
+}

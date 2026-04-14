@@ -10,3 +10,5 @@ $env.config.hooks.env_change.PWD = (
 )
 
 $env.PATH = $env.PATH | append ~/.cargo/bin
+$env.PATH = $env.PATH | prepend "/home/luca/.wasmtime/bin"
+
