@@ -386,3 +386,42 @@ export def reduce-lesson-video [
 
     ^ffmpeg ...$args
 }
+
+export def spawn-command [
+    command: string,
+    ...args,
+] {
+    job spawn --tag $command {
+        ^$command ...$args
+    }
+}
+
+export def --env "source bash" [
+    script: path # The bash script to source
+] {
+    # TODO or just "env"?
+    let entries = ^bash -c $"source ($script); printenv"
+        | lines
+        | split column "=" key value -n 2
+
+    mut new_env = {}
+
+    let excluded = ["PWD", "OLDPWD", "SHLVL", "_"]
+
+    for entry in $entries {
+        if $entry.key in $excluded {
+            continue
+        }
+        $new_env = $new_env | insert $entry.key $entry.value
+    }
+
+    $new_env | load-env
+}
+
+export def "to-clipboard" []: string -> nothing {
+    $in | ^xclip -selection clipboard
+}
+
+export def "from-clipboard" []: nothing -> string {
+    ^xclip -selection clipboard -o
+}
