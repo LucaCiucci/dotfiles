@@ -16,7 +16,7 @@ export use nu_scripts/custom-completions/rustup/rustup-completions.nu *
 export use nu_scripts/custom-completions/ssh/ssh-completions.nu *
 export use nu_scripts/custom-completions/tar/tar-completions.nu *
 #export use nu_scripts/custom-completions/typst/typst-completions.nu *
-export use nu_scripts/custom-completions/vscode/vscode-completions.nu *
+#export use nu_scripts/custom-completions/vscode/vscode-completions.nu *
 
 # My own completions
 #export use my_completions/birb.nu *
