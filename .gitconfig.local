@@ -1,0 +1,6 @@
+[user]
+	name = Luca Ciucci
+	email = luca.ciucci99@gmail.com
+
+[includeIf "gitdir:**/bugseng/**/*.git"]
+	path = .gitconfig.bugseng

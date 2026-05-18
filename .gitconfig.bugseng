@@ -1,0 +1,19 @@
+[user]
+    name = Luca Ciucci
+    email = luca.ciucci@bugseng.com
+[alias]
+    up = pull --rebase
+    wup = log -p origin..@{0}
+    ll = log --pretty='format:%C(yellow)%h %Cgreen%an %Cred%d %Creset%<(30,trunc)%s' --graph
+    lol = log --pretty='format:%C(yellow)%h %Cblue%>(12)%ad %Cgreen%<(7)%aN%Cred%d %Creset%s' --graph --date=format:'%d/%m/%y %H:%M'
+    lola = log --pretty='format:%C(yellow)%h %Cblue%>(12)%ad %Cgreen%<(7)%aN%Cred%d %Creset%s' --graph --all --date=format:'%d/%m/%y %H:%M'
+[diff]
+    renames = true
+[diff "odf"]
+    textconv=odt2txt
+[push]
+    default = tracking
+[init]
+    defaultBranch = main
+[core]
+    editor = hx
