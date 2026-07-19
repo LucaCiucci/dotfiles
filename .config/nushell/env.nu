@@ -1,5 +1,6 @@
 use user.nu
 use user cdk
+use user "git branch-status"
 user present
 export use "completions.nu" *
 
@@ -11,4 +12,3 @@ $env.config.hooks.env_change.PWD = (
 
 $env.PATH = $env.PATH | append ~/.cargo/bin
 $env.PATH = $env.PATH | prepend "/home/luca/.wasmtime/bin"
-

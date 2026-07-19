@@ -200,6 +200,86 @@ export def --env cdk [dir: path] {
     cd $dir
 }
 
+# Show the publication and synchronization state of every local branch.
+#
+# By default this compares against locally cached remote-tracking refs. Use
+# `git branch-status --fetch` when the result must include the latest remote
+# state; this runs `git fetch --all --prune` first.
+export def "git branch-status" [
+    --fetch (-f) # Fetch and prune remotes before checking branch state
+] {
+    let repository = (^git rev-parse --is-inside-work-tree | complete)
+    if $repository.exit_code != 0 or ($repository.stdout | str trim) != "true" {
+        error make {msg: "git branch-status must be run inside a Git worktree"}
+    }
+
+    if $fetch {
+        ^git fetch --all --prune | ignore
+    }
+
+    let current_branch = (^git branch --show-current | str trim)
+    let ref_format = ('%(refname:short)' + (char tab) + '%(upstream:short)')
+    let branches = (
+        ^git for-each-ref --format $ref_format refs/heads
+        | lines
+        | each {|line|
+            let fields = ($line | split row (char tab))
+            {
+                branch: ($fields | first)
+                upstream: ($fields | get 1 | default null | if $in == "" { null } else { $in })
+            }
+        }
+    )
+
+    $branches | each {|branch|
+        let base = {
+            branch: $branch.branch
+            current: ($branch.branch == $current_branch)
+            upstream: $branch.upstream
+            published: ($branch.upstream != null)
+            ahead: null
+            behind: null
+            status: "unpublished"
+        }
+
+        if $branch.upstream == null {
+            $base
+        } else {
+            let comparison = (
+                ^git rev-list --left-right --count $"($branch.branch)...($branch.upstream)"
+                | complete
+            )
+
+            if $comparison.exit_code != 0 {
+                $base | upsert status "missing-upstream"
+            } else {
+                let counts = (
+                    $comparison.stdout
+                    | str trim
+                    | split column (char tab) ahead behind
+                    | first
+                    | update ahead { into int }
+                    | update behind { into int }
+                )
+                let status = if $counts.ahead == 0 and $counts.behind == 0 {
+                    "up-to-date"
+                } else if $counts.behind == 0 {
+                    "ahead"
+                } else if $counts.ahead == 0 {
+                    "behind"
+                } else {
+                    "diverged"
+                }
+
+                $base
+                | upsert ahead $counts.ahead
+                | upsert behind $counts.behind
+                | upsert status $status
+            }
+        }
+    }
+}
+
 export def friendly-path [
     path?: path      # The path to display (defaults to current directory)
     --force (-f)     # Allow non-existent paths (will check git from nearest existing parent)
