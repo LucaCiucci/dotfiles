@@ -471,7 +471,7 @@ export def spawn-command [
     command: string,
     ...args,
 ] {
-    job spawn --tag $command {
+    job spawn --description $command {
         ^$command ...$args
     }
 }
@@ -486,7 +486,7 @@ export def --env "source bash" [
 
     mut new_env = {}
 
-    let excluded = ["PWD", "OLDPWD", "SHLVL", "_"]
+    let excluded = ["PWD", "OLDPWD", "SHLVL", "_", "SHELL"]
 
     for entry in $entries {
         if $entry.key in $excluded {
@@ -497,6 +497,29 @@ export def --env "source bash" [
 
     $new_env | load-env
 }
+
+export def --env "eval bash env" [
+    commands: string # The bash command to run
+] {
+    # TODO or just "env"?
+    let entries = ^bash -c $"($commands); printenv"
+        | lines
+        | split column "=" key value -n 2
+
+    mut new_env = {}
+
+    let excluded = ["PWD", "OLDPWD", "SHLVL", "_", "SHELL"]
+
+    for entry in $entries {
+        if $entry.key in $excluded {
+            continue
+        }
+        $new_env = $new_env | insert $entry.key $entry.value
+    }
+
+    $new_env | load-env
+}
+
 
 export def "to-clipboard" []: string -> nothing {
     $in | ^xclip -selection clipboard
