@@ -109,13 +109,18 @@ def branch_prompt [] {
         } else {
             $branch_response_lines.0
         }
-        let repo_root = ^git rev-parse --show-toplevel | complete | get stdout | str trim | relative_to_home
+        let repo_root_abs = ^git rev-parse --show-toplevel | complete | get stdout | str trim
+        let repo_root = $repo_root_abs | relative_to_home
         let repo_parent = $repo_root | path dirname
         let repo_name = ^basename $repo_root
         let path_relative_to_repo = match ($dir | path relative-to $repo_root) {
             "" => "",
             $relative => $relative
         }
+
+        let superproject_root = ^git rev-parse --show-superproject-working-tree | str trim
+        let is_submodule = $superproject_root != ""
+        let repo_name_color = if $is_submodule { ansi cyan } else { $path_color }
 
         let remote_url = ^git config --get remote.origin.url | complete | get stdout | str trim
         let browser_url = git-browser-url $remote_url
@@ -139,7 +144,49 @@ def branch_prompt [] {
             color_path_gitignore $repo_root $path_relative_to_repo $path_color $colored_sep
         }
 
-        $"($repo_parent | color_path)($colored_sep)($path_color)($repo_name_with_link)($branch_info)($colored_path)"
+        if $is_submodule {
+            let superproject_path = $superproject_root | relative_to_home
+            let superproject_parent = $superproject_path | path dirname
+            let superproject_name = $superproject_path | path basename
+            let superproject_remote = ^git -C $superproject_root config --get remote.origin.url | complete | get stdout | str trim
+            let superproject_browser_url = git-browser-url $superproject_remote
+            let superproject_name_with_link = if $superproject_browser_url == "" {
+                $superproject_name
+            } else {
+                $superproject_browser_url | ansi link --text $superproject_name
+            }
+
+            let superproject_branch_response = (^git -C $superproject_root branch --show-current | complete)
+            let superproject_branch = if ($superproject_branch_response.stdout | str trim | is-empty) {
+                let hash = ^git -C $superproject_root rev-parse --short HEAD | str trim
+                $"#($hash)"
+            } else {
+                $superproject_branch_response.stdout | str trim
+            }
+
+            let superproject_status = (
+                ^git -C $superproject_root status --porcelain=v1 --untracked-files=no --ignore-submodules=dirty
+                | lines
+            )
+            let superproject_no_changes = ($superproject_status | is-empty)
+            let superproject_staged = $superproject_status | any {|line| ($line | split chars | first) != " " }
+            let superproject_staged_mark = if $superproject_staged { $"(ansi yellow)●(ansi reset)" } else { "" }
+            let superproject_color = if $superproject_no_changes { ansi grey } else { ansi xterm_gold3b }
+            let superproject_branch_info = $"(ansi grey)\((ansi reset)($superproject_color)($superproject_branch)(ansi reset)($superproject_staged_mark)(ansi grey)\)(ansi reset)"
+
+            let submodule_relative_path = $repo_root_abs | path relative-to $superproject_root
+            let submodule_parent_relative = $submodule_relative_path | path dirname
+            let colored_submodule_parent = if $submodule_parent_relative == "" {
+                ""
+            } else {
+                color_path_gitignore $superproject_root $submodule_parent_relative $path_color $colored_sep
+            }
+            let submodule_root_component = $"($colored_sep)(ansi cyan)($repo_name_with_link)(ansi reset)"
+
+            $"($superproject_parent | color_path)($colored_sep)($path_color)($superproject_name_with_link)($superproject_branch_info)($colored_submodule_parent)($submodule_root_component)($branch_info)($colored_path)"
+        } else {
+            $"($repo_parent | color_path)($colored_sep)($repo_name_color)($repo_name_with_link)($branch_info)($colored_path)"
+        }
     } else {
         $dir | color_path
     };
