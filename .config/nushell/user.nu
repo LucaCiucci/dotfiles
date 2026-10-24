@@ -9,6 +9,53 @@ export def relative_to_home [] {
     }
 }
 
+def git-browser-url [remote_url: string]: nothing -> string {
+    let remote_url = $remote_url | str trim
+    let rules = [
+        {
+            pattern: '^(?:git\+)?ssh://(?:[^@/]+@)?([^/:]+)(?::[0-9]+)?/(.+)$'
+            replacement: 'https://$1/$2'
+            scp: false
+        }
+        {
+            pattern: '^git://([^/:]+)(?::[0-9]+)?/(.+)$'
+            replacement: 'https://$1/$2'
+            scp: false
+        }
+        # Git's scp-like SSH syntax is user@host:path, not the scp command.
+        {
+            pattern: '^(?:[^@/]+@)?([^/:]+):(.+)$'
+            replacement: 'https://$1/$2'
+            scp: true
+        }
+        {
+            pattern: '^git\+(https?://)'
+            replacement: '$1'
+            scp: false
+        }
+        {
+            pattern: '^https?://'
+            replacement: '$0'
+            scp: false
+        }
+    ]
+
+    let has_scheme = $remote_url | str contains "://"
+    mut browser_url = ""
+    for rule in $rules {
+        let matches_pattern = $remote_url =~ $rule.pattern
+        let matches_scheme = not $rule.scp or not $has_scheme
+        if $matches_pattern and $matches_scheme {
+            $browser_url = $remote_url | str replace --regex $rule.pattern $rule.replacement
+            break
+        }
+    }
+
+    $browser_url
+    | str replace --regex '^(https?://)([^/@]+@)?' '$1'
+    | str replace --regex '\.git/?$' ''
+}
+
 def branch_prompt [] {
     let user = whoami | str trim
     let hostname = hostname | str trim
@@ -70,9 +117,12 @@ def branch_prompt [] {
             $relative => $relative
         }
 
-        let repo_name_with_link = match (^git config --get remote.origin.url | complete | get stdout | str trim) {
-            $url => ($url | ansi link --text $repo_name),
-            "" => $repo_name,
+        let remote_url = ^git config --get remote.origin.url | complete | get stdout | str trim
+        let browser_url = git-browser-url $remote_url
+        let repo_name_with_link = if $browser_url == "" {
+            $repo_name
+        } else {
+            $browser_url | ansi link --text $repo_name
         }
 
         let no_changes = (git diff-index --quiet HEAD -- | complete | get exit_code) == 0
