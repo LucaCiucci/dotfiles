@@ -21,20 +21,34 @@ def branch_prompt [] {
         $"($path_color)($in)" | str replace --all (char path_sep) $"($colored_sep)($path_color)"
     }
 
-    # Helper: color path, gray for gitignored
     def color_path_gitignore [repo_root path_relative_to_repo path_color colored_sep] {
         let sep = (char path_sep)
-        let parts = ($path_relative_to_repo | split row $sep | where {|x| $x != "" })
-        mut acc = $repo_root
-        mut colored = []
+        let parts = ($path_relative_to_repo | split row $sep | where {|part| $part != "" })
+        mut accumulated_path = ""
+        mut paths = []
         for part in $parts {
-            let next = ($acc | path join $part | path expand)
-            let is_ignored = (do --ignore-errors { ^git check-ignore $"($next)/" | complete | get exit_code } | default 1) == 0
-            let color = if $is_ignored { ansi grey } else { $path_color }
-            $colored = ($colored | append $"($colored_sep)($color)($part)(ansi reset)")
-            $acc = $next
+            $accumulated_path = if $accumulated_path == "" {
+                $part
+            } else {
+                $accumulated_path | path join $part
+            }
+            $paths = ($paths | append { component: $part, path: $accumulated_path })
         }
-        $colored | str join ""
+
+        let input = $paths | each {|entry| $"($entry.path)/(char nul)" } | str join
+        let repo_root_abs = $repo_root | path expand
+        let ignored_response = ($input | ^git -C $repo_root_abs check-ignore --stdin -z | complete)
+        let ignored_paths = if $ignored_response.exit_code == 0 {
+            $ignored_response.stdout | split row (char nul)
+        } else {
+            []
+        }
+
+        $paths | each {|entry|
+            let candidate = $"($entry.path)/"
+            let color = if $candidate in $ignored_paths { ansi grey } else { $path_color }
+            $"($colored_sep)($color)($entry.component)(ansi reset)"
+        } | str join ""
     }
 
     mut dir = $env.PWD | relative_to_home
@@ -56,23 +70,18 @@ def branch_prompt [] {
             $relative => $relative
         }
 
-        # add a link to the repo if we have one
         let repo_name_with_link = match (^git config --get remote.origin.url | complete | get stdout | str trim) {
             $url => ($url | ansi link --text $repo_name),
             "" => $repo_name,
         }
 
         let no_changes = (git diff-index --quiet HEAD -- | complete | get exit_code) == 0
-        let unpushed = (git log --branches --not --remotes --max-count=1 | lines | length) > 0
-        let unpulled = (git log --remotes --not --branches --max-count=1 | lines | length) > 0
         let staged = (git diff --staged --quiet | complete | get exit_code) == 1
 
-        let unpushed_mark = if $unpushed { $"(ansi purple)↑(ansi reset)" } else { "" }
-        let unpulled_mark = if $unpulled { $"(ansi red)↓(ansi reset)" } else { "" }
         let staged_mark = if $staged { $"(ansi yellow)●(ansi reset)" } else { "" }
         let color = if $no_changes { ansi grey } else { ansi xterm_gold3b }
 
-        let branch_info = $"(ansi grey)\((ansi reset)($color)($branch)(ansi reset)($unpushed_mark)($unpulled_mark)($staged_mark)(ansi grey)\)(ansi reset)"
+        let branch_info = $"(ansi grey)\((ansi reset)($color)($branch)(ansi reset)($staged_mark)(ansi grey)\)(ansi reset)"
 
         let colored_path = if $path_relative_to_repo == "" {
             ""
